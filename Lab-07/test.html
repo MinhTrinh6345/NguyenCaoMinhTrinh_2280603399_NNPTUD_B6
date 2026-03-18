@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test API - Change Password & RS256</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            width: 100%;
+            max-width: 500px;
+            padding: 30px;
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 24px;
+        }
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            color: #333;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            margin-top: 10px;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        .response {
+            margin-top: 30px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+            white-space: pre-wrap;
+            word-break: break-all;
+            font-size: 13px;
+            font-family: 'Courier New', monospace;
+        }
+        .response.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            display: block;
+        }
+        .response.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            display: block;
+        }
+        .response.info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+            display: block;
+        }
+        .step {
+            background: #f5f5f5;
+            padding: 15px;
+            border-left: 4px solid #667eea;
+            margin-bottom: 20px;
+            border-radius: 3px;
+        }
+        .step-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .step-desc {
+            font-size: 13px;
+            color: #666;
+            line-height: 1.6;
+        }
+        .separator {
+            height: 1px;
+            background: #ddd;
+            margin: 20px 0;
+        }
+        .token-display {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 3px;
+            word-break: break-all;
+            font-size: 12px;
+            font-family: monospace;
+            max-height: 100px;
+            overflow-y: auto;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Test API - Change Password & RS256</h1>
+        <p class="subtitle">Kiểm tra hàm changepassword và JWT RS256</p>
+
+        <!-- Step 1: Login -->
+        <div class="step">
+            <div class="step-title">Bước 1: Đăng nhập</div>
+            <div class="step-desc">Nhập username và password để lấy JWT token (RS256)</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="username">Username:</label>
+            <input type="text" id="username" placeholder="Nhập username của bạn" value="admin">
+        </div>
+
+        <div class="form-group">
+            <label for="password">Password:</label>
+            <input type="password" id="password" placeholder="Nhập password của bạn" value="Admin@123">
+        </div>
+
+        <button onclick="login()">Đăng nhập</button>
+
+        <div id="tokenResponse" class="response"></div>
+
+        <div id="tokenDisplay" style="display: none;">
+            <p style="margin-top: 15px; color: #666; font-weight: 600;">📌 Token nhận được (RS256):</p>
+            <div class="token-display" id="tokenValue"></div>
+        </div>
+
+        <!-- Step 2: Change Password -->
+        <div class="step" style="margin-top: 30px;">
+            <div class="step-title">Bước 2: Đổi mật khẩu</div>
+            <div class="step-desc">Sau khi đăng nhập thành công, dùng token để đổi mật khẩu</div>
+        </div>
+
+        <div class="form-group">
+            <label for="oldPassword">Mật khẩu cũ:</label>
+            <input type="password" id="oldPassword" placeholder="Nhập mật khẩu hiện tại" value="Admin@123">
+        </div>
+
+        <div class="form-group">
+            <label for="newPassword">Mật khẩu mới:</label>
+            <input type="password" id="newPassword" placeholder="Nhập mật khẩu mới (tối thiểu 8 ký tự, có chữ hoa, thường, số, ký tự đặc biệt)" value="NewPass@123">
+        </div>
+
+        <button onclick="changePassword()" id="changePassBtn" disabled>Đổi mật khẩu</button>
+
+        <div id="changePassResponse" class="response"></div>
+
+        <div class="separator"></div>
+
+        <div style="font-size: 12px; color: #999;">
+            <strong>💡 Lưu ý:</strong>
+            <ul style="margin-left: 20px; margin-top: 10px;">
+                <li>Mật khẩu mới phải có ít nhất 8 ký tự</li>
+                <li>Phải bao gồm: chữ hoa, chữ thường, số, ký tự đặc biệt (!@#$%^&*)</li>
+                <li>Mật khẩu mới phải khác mật khẩu cũ</li>
+                <li>JWT sử dụng thuật toán RS256 (asymmetric encryption)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api/v1';
+        let currentToken = null;
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const responseDiv = document.getElementById('tokenResponse');
+
+            if (!username || !password) {
+                showResponse(responseDiv, 'Vui lòng nhập username và password', 'error');
+                return;
+            }
+
+            try {
+                responseDiv.innerHTML = '🔄 Đang đăng nhập...';
+                responseDiv.className = 'response info';
+                responseDiv.style.display = 'block';
+
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ username, password })
+                });
+
+                const data = await response.text();
+
+                if (response.ok) {
+                    currentToken = data;
+                    showResponse(responseDiv, `✅ Đăng nhập thành công!\n\nToken (RS256):\n${data}`, 'success');
+                    document.getElementById('tokenValue').textContent = data;
+                    document.getElementById('tokenDisplay').style.display = 'block';
+                    document.getElementById('changePassBtn').disabled = false;
+
+                    // Decode và hiển thị thông tin token
+                    try {
+                        const parts = data.split('.');
+                        if (parts.length === 3) {
+                            const decoded = JSON.parse(atob(parts[1]));
+                            console.log('🔍 Token Payload (RS256):', decoded);
+                            console.log('Exp:', new Date(decoded.exp * 1000).toLocaleString());
+                        }
+                    } catch (e) {
+                        console.log('Không thể decode token');
+                    }
+                } else {
+                    showResponse(responseDiv, `❌ Lỗi: ${data}`, 'error');
+                    document.getElementById('changePassBtn').disabled = true;
+                }
+            } catch (error) {
+                showResponse(responseDiv, `❌ Lỗi kết nối:\n${error.message}`, 'error');
+                document.getElementById('changePassBtn').disabled = true;
+            }
+        }
+
+        async function changePassword() {
+            if (!currentToken) {
+                showResponse(document.getElementById('changePassResponse'), 
+                    '⚠️ Vui lòng đăng nhập trước!', 'error');
+                return;
+            }
+
+            const oldPassword = document.getElementById('oldPassword').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const responseDiv = document.getElementById('changePassResponse');
+
+            if (!oldPassword || !newPassword) {
+                showResponse(responseDiv, '⚠️ Vui lòng nhập mật khẩu cũ và mới', 'error');
+                return;
+            }
+
+            try {
+                responseDiv.innerHTML = '🔄 Đang đổi mật khẩu...';
+                responseDiv.className = 'response info';
+                responseDiv.style.display = 'block';
+
+                const response = await fetch(`${API_URL}/users/changepassword`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({ oldPassword, newPassword })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    showResponse(responseDiv, 
+                        `✅ ${data.message}\n\nThông tin người dùng:\n${JSON.stringify(data.user, null, 2)}`, 
+                        'success');
+                } else {
+                    showResponse(responseDiv, `❌ Lỗi: ${data.message}`, 'error');
+                }
+            } catch (error) {
+                showResponse(responseDiv, `❌ Lỗi kết nối:\n${error.message}`, 'error');
+            }
+        }
+
+        function showResponse(element, message, classType) {
+            element.textContent = message;
+            element.className = `response ${classType}`;
+            element.style.display = 'block';
+        }
+
+        // Cho phép nhấn Enter để submit form
+        document.getElementById('password').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') login();
+        });
+        document.getElementById('newPassword').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') changePassword();
+        });
+    </script>
+</body>
+</html>
